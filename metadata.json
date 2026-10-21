@@ -1,0 +1,6 @@
+{
+  "name": "우리회사 AI 인사·노무 규정 안내 챗봇",
+  "description": "회사 내규와 최신 노동관계법령을 바탕으로 임직원의 인사·노무 질문에 신속·정확하게 답변하는 사내규정 AI 안내센터",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
