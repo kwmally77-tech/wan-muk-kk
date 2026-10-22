@@ -1,9 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
-import mammoth from 'mammoth';
 import { CompanyDocument, DocumentChunk, AdminSettings, SearchTestResult } from '../types/index.js';
 import { INITIAL_DOCUMENTS, INITIAL_CHUNKS } from './defaultDocuments.js';
 
@@ -130,10 +127,13 @@ export class DocumentStore {
     let rawText = '';
 
     if (ext === '.pdf') {
+      const require = createRequire(import.meta.url);
+      const pdfParse = require('pdf-parse');
       const pdfData = await pdfParse(fileBuffer);
       rawText = pdfData.text || '';
     } else if (ext === '.docx') {
-      const result = await mammoth.extractRawText({ buffer: fileBuffer });
+      const mammoth = await import('mammoth');
+      const result = await mammoth.default.extractRawText({ buffer: fileBuffer });
       rawText = result.value || '';
     } else if (ext === '.txt' || ext === '.md') {
       rawText = fileBuffer.toString('utf-8');

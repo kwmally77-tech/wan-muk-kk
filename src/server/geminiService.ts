@@ -22,38 +22,36 @@ export interface ChatResponsePayload {
 }
 
 export class GeminiService {
-  private ai: GoogleGenAI | null = null;
+  private resolveApiKey(): string | undefined {
+    const rawKey =
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.VITE_GEMINI_API_KEY;
+    if (!rawKey) return undefined;
+    const cleaned = rawKey.trim().replace(/^["']|["']$/g, '');
+    if (!cleaned || cleaned === 'MY_GEMINI_API_KEY') return undefined;
+    return cleaned;
+  }
 
-  constructor() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey) {
-      this.ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
-        },
-      });
-    }
+  public isApiKeyConfigured(): boolean {
+    return Boolean(this.resolveApiKey());
   }
 
   private getClient(): GoogleGenAI {
-    if (!this.ai) {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error('GEMINI_API_KEY 환경변수가 설정되지 않았습니다.');
-      }
-      this.ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
-        },
-      });
+    const apiKey = this.resolveApiKey();
+    if (!apiKey) {
+      throw new Error(
+        '서버 환경변수(GEMINI_API_KEY)가 설정되지 않았습니다. Vercel Project Settings > Environment Variables에 GEMINI_API_KEY를 등록해 주세요.'
+      );
     }
-    return this.ai;
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
   }
 
   /**
@@ -151,22 +149,38 @@ ${companyContextText}
       const client = this.getClient();
       // Execute generateContent with Google Search Grounding tool enabled if setting is on
       const toolsConfig = settings.enableSearchGrounding ? [{ googleSearch: {} }] : [];
+      const requestContents = [
+        ...history.slice(-4).map((h) => ({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content }],
+        })),
+        { role: 'user', parts: [{ text: userMessageContent }] },
+      ];
+      const requestConfig = {
+        systemInstruction: systemPrompt,
+        temperature: 0.2,
+        ...(toolsConfig.length > 0 ? { tools: toolsConfig } : {}),
+      };
 
-      const response = await client.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: [
-          ...history.slice(-4).map((h) => ({
-            role: h.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: h.content }],
-          })),
-          { role: 'user', parts: [{ text: userMessageContent }] },
-        ],
-        config: {
-          systemInstruction: systemPrompt,
-          temperature: 0.2, // Low temperature for high factual accuracy
-          ...(toolsConfig.length > 0 ? { tools: toolsConfig } : {}),
-        },
-      });
+      const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+      let response;
+      try {
+        response = await client.models.generateContent({
+          model: primaryModel,
+          contents: requestContents,
+          config: requestConfig,
+        });
+      } catch (primaryErr) {
+        if (primaryModel !== 'gemini-flash-latest') {
+          response = await client.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: requestContents,
+            config: requestConfig,
+          });
+        } else {
+          throw primaryErr;
+        }
+      }
 
       const responseText = response.text || '답변을 생성하지 못했습니다.';
 

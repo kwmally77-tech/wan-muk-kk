@@ -3,11 +3,11 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
-import { documentStore } from './src/server/documentStore.js';
-import { geminiService } from './src/server/geminiService.js';
 
 dotenv.config();
+
+import { documentStore } from './src/server/documentStore.js';
+import { geminiService } from './src/server/geminiService.js';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -169,7 +169,8 @@ async function startServer() {
   const isDev = process.env.NODE_ENV !== 'production';
 
   if (isDev) {
-    // In dev, mount Vite middleware
+    // In dev, dynamically import and mount Vite middleware
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
