@@ -7,7 +7,9 @@ import mammoth from 'mammoth';
 import { CompanyDocument, DocumentChunk, AdminSettings, SearchTestResult } from '../types/index.js';
 import { INITIAL_DOCUMENTS, INITIAL_CHUNKS } from './defaultDocuments.js';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'data')
+  : path.resolve(process.cwd(), 'data');
 const DOCS_FILE = path.join(DATA_DIR, 'documents.json');
 const CHUNKS_FILE = path.join(DATA_DIR, 'chunks.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');

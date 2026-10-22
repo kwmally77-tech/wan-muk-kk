@@ -27,7 +27,14 @@ export class GeminiService {
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
-      this.ai = new GoogleGenAI({ apiKey });
+      this.ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
     }
   }
 
@@ -37,7 +44,14 @@ export class GeminiService {
       if (!apiKey) {
         throw new Error('GEMINI_API_KEY 환경변수가 설정되지 않았습니다.');
       }
-      this.ai = new GoogleGenAI({ apiKey });
+      this.ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
     }
     return this.ai;
   }
